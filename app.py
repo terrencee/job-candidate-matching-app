@@ -49,7 +49,7 @@ def get_top_matches(query_text, corpus_texts, query_is_candidate=True, top_n=5):
 # --- Input validation ---
 def is_valid_input(text):
     # Require at least 4 words to consider valid
-    return len(text.split()) >= 4
+    return len(text.split()) >= 7
 
 # --- Streamlit UI ---
 st.title("🔍 Job ↔ Candidate Matching App")
