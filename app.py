@@ -41,7 +41,7 @@ def get_top_matches(query_text, corpus_texts, query_is_candidate=True, top_n=5):
     raw_scores = [s for _, s in scores]
 
     # --- NEW: threshold check ---
-    if all(s < 30 for s in raw_scores):
+    if all(s < 20 for s in raw_scores):
         return None  # signal no proper match
 
     norm_scores = normalize_scores(raw_scores)
@@ -51,11 +51,11 @@ def get_top_matches(query_text, corpus_texts, query_is_candidate=True, top_n=5):
 
 # --- Input validation ---
 def is_valid_input(text):
-    # Require at least 7 words to consider valid
-    return len(text.split()) >= 7
+    # Require at least 15 characters (adjust as needed)
+    return len(text.strip()) >= 10
 
 # --- Streamlit UI ---
-st.title("🔍 Job ↔ Candidate Matching App")
+st.title(" Job ↔ Candidate Matching App")
 st.write("Match candidates and jobs using a fine-tuned DistilBERT regression model.")
 
 mode = st.radio("Choose a mode:", ["Candidate → Jobs", "Job → Candidates"])
@@ -69,13 +69,13 @@ if mode == "Candidate → Jobs":
         job_list = [j.strip() for j in jobs_input.split("\n") if j.strip()]
         
         if not is_valid_input(candidate_input):
-            st.error("❌ Candidate profile is too short or invalid. Please provide a detailed description.")
+            st.error(" Candidate profile is too short or invalid. Please provide a detailed description.")
         elif any(not is_valid_input(j) for j in job_list):
-            st.error("❌ One or more job profiles are too short or invalid. Please provide detailed descriptions.")
+            st.error(" One or more job profiles are too short or invalid. Please provide detailed descriptions.")
         else:
             results = get_top_matches(candidate_input, job_list, query_is_candidate=True, top_n=top_n)
             if results is None:
-                st.error("❌ No proper match found. Please provide more detailed inputs.")
+                st.error(" No proper match found. Please provide more detailed inputs.")
             else:
                 st.subheader("Best Job Matches")
                 for i, (job, score) in enumerate(results, 1):
@@ -90,13 +90,13 @@ else:
         cand_list = [c.strip() for c in candidates_input.split("\n") if c.strip()]
         
         if not is_valid_input(job_input):
-            st.error("❌ Job description is too short or invalid. Please provide a detailed description.")
+            st.error(" Job description is too short or invalid. Please provide a detailed description.")
         elif any(not is_valid_input(c) for c in cand_list):
-            st.error("❌ One or more candidate profiles are too short or invalid. Please provide detailed descriptions.")
+            st.error(" One or more candidate profiles are too short or invalid. Please provide detailed descriptions.")
         else:
             results = get_top_matches(job_input, cand_list, query_is_candidate=False, top_n=top_n)
             if results is None:
-                st.error("❌ No proper match found. Please provide more detailed inputs.")
+                st.error(" No proper match found. Please provide more detailed inputs.")
             else:
                 st.subheader("Best Candidate Matches")
                 for i, (cand, score) in enumerate(results, 1):
