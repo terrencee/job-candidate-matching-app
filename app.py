@@ -1,7 +1,15 @@
 import streamlit as st
 import torch
 import numpy as np
+import random
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+# --- Tiered company list ---
+TIERS = {
+    "top": ["Google", "Facebook", "Microsoft", "Amazon", "Apple", "Netflix"],
+    "mid": ["Infosys", "TCS", "Wipro", "Accenture", "Capgemini", "HCL", "Cognizant", "Tech Mahindra"],
+    "startup": ["Flipkart", "Paytm", "Zomato", "Swiggy", "Ola", "Freshworks", "Zoho"]
+}
 
 # Cache model + tokenizer so they don't reload each time
 @st.cache_resource
@@ -28,6 +36,24 @@ def normalize_scores(scores):
     scores = np.array(scores)
     return (scores - scores.min()) / (scores.max() - scores.min() + 1e-9)
 
+# --- Helper: pick company based on candidate experience ---
+def pick_company(text):
+    text_lower = text.lower()
+    years = 0
+    if "year" in text_lower:
+        for w in text_lower.split():
+            if w.isdigit():
+                years = int(w)
+                break
+    # crude heuristic
+    if years >= 5:
+        pool = TIERS["top"] + TIERS["mid"]
+    elif years >= 2:
+        pool = TIERS["mid"] + TIERS["startup"]
+    else:
+        pool = TIERS["startup"]
+    return random.choice(pool)
+
 # Function to rank matches
 def get_top_matches(query_text, corpus_texts, query_is_candidate=True, top_n=5):
     scores = []
@@ -40,18 +66,26 @@ def get_top_matches(query_text, corpus_texts, query_is_candidate=True, top_n=5):
 
     raw_scores = [s for _, s in scores]
 
-    # --- NEW: threshold check ---
+    # --- Threshold check ---
     if all(s < 20 for s in raw_scores):
-        return None  # signal no proper match
+        return None
 
     norm_scores = normalize_scores(raw_scores)
     normalized_results = [(doc, norm) for (doc, _), norm in zip(scores, norm_scores)]
-    ranked = sorted(normalized_results, key=lambda x: x[1], reverse=True)
+
+    # --- Expand with tier-based companies ---
+    expanded_results = []
+    for (doc, score) in normalized_results:
+        company = pick_company(query_text if query_is_candidate else doc)
+        # jitter but clamp between 0–1
+        new_score = min(1.0, max(0.0, score * random.uniform(0.9, 1.1)))
+        expanded_results.append((f"{doc} at {company}", new_score))
+
+    ranked = sorted(expanded_results, key=lambda x: x[1], reverse=True)
     return ranked[:top_n]
 
 # --- Input validation ---
 def is_valid_input(text):
-    # Require at least 15 characters (adjust as needed)
     return len(text.strip()) >= 10
 
 # --- Streamlit UI ---
